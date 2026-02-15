@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e3a5f 100%);
+            font-family: 'Quicksand', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+            transition: background 1s ease-in-out;
+        }
+
+        body.romantic-bg {
+            background: linear-gradient(135deg, #7c2d3e 0%, #c94b5a 30%, #e06377 50%, #c94b5a 70%, #7c2d3e 100%);
+            animation: romanticGlow 3s ease-in-out infinite alternate;
+            position: relative;
+        }
+
+        body.romantic-bg::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.2) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes romanticGlow {
+            0% {
+                background: linear-gradient(135deg, #7c2d3e 0%, #c94b5a 30%, #e06377 50%, #c94b5a 70%, #7c2d3e 100%);
+            }
+            100% {
+                background: linear-gradient(135deg, #8b3a4a 0%, #d4586a 30%, #f07388 50%, #d4586a 70%, #8b3a4a 100%);
+            }
+        }
+
+        .sparkle {
+            position: fixed;
+            font-size: 24px;
+            pointer-events: none;
+            animation: fall linear forwards;
+            z-index: 1000;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        h1 {
+            font-family: 'Pacifico', cursive;
+            color: #fce7f3;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            text-shadow: 3px 3px 10px rgba(0,0,0,0.4), 0 0 20px rgba(255,255,255,0.1);
+            letter-spacing: 1px;
+        }
+
+        body.romantic-bg h1 {
+            text-shadow: 4px 4px 15px rgba(0,0,0,0.6), 0 0 30px rgba(255,255,255,0.2);
+        }
+
+        .instructions {
+            text-align: center;
+            color: #fce7f3;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .instructions p {
+            margin: 0.3rem 0;
+        }
+
+        .instructions strong {
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .wordle-container {
+            perspective: 1000px;
+        }
+
+        .wordle-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 2rem;
+            align-items: center;
+        }
+
+        .wordle-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .wordle-cell {
+            width: 65px;
+            height: 65px;
+            border: 3px solid #3b5998;
+            background: linear-gradient(145deg, #2d4a7c, #1e3a5f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: white;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .wordle-cell.has-letter {
+            border-color: #4a6fa5;
+            background: linear-gradient(145deg, #3b5998, #2d4a7c);
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(59, 89, 152, 0.4);
+        }
+
+        .wordle-cell.correct {
+            background: linear-gradient(145deg, #10b981, #059669);
+            border-color: #10b981;
+        }
+
+        .wordle-cell.present {
+            background: linear-gradient(145deg, #fbbf24, #f59e0b);
+            border-color: #fbbf24;
+        }
+
+        .wordle-cell.absent {
+            background: linear-gradient(145deg, #4b5563, #374151);
+            border-color: #4b5563;
+        }
+
+        .wordle-cell.revealed {
+            animation: flipToRed 0.6s ease-out forwards;
+            background: linear-gradient(145deg, #dc2626, #b91c1c);
+            border-color: #dc2626;
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+        }
+
+        @keyframes flipToRed {
+            0% {
+                transform: rotateY(0deg) scale(1);
+            }
+            50% {
+                transform: rotateY(90deg) scale(1.1);
+            }
+            100% {
+                transform: rotateY(0deg) scale(1);
+            }
+        }
+
+        .keyboard {
+            margin-bottom: 1.5rem;
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .key {
+            padding: 14px 10px;
+            min-width: 40px;
+            background: linear-gradient(145deg, #3b5998, #2d4a7c);
+            color: #e2e8f0;
+            border: 2px solid #4a6fa5;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Quicksand', sans-serif;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+
+        .key:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+        }
+
+        .key:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .key.special {
+            padding: 14px 12px;
+            min-width: 65px;
+            font-size: 13px;
+        }
+
+        .key.yellow {
+            background: linear-gradient(145deg, #fbbf24, #f59e0b);
+            color: #1e293b;
+            border-color: #f59e0b;
+            box-shadow: 0 3px 10px rgba(251, 191, 36, 0.4);
+        }
+
+        .key.yellow:hover {
+            box-shadow: 0 5px 15px rgba(251, 191, 36, 0.6);
+        }
+
+        .key.grey {
+            background: linear-gradient(145deg, #4b5563, #374151);
+            color: #9ca3af;
+            border-color: #6b7280;
+        }
+
+        .key.disabled {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            color: #475569;
+            border-color: #334155;
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .key.disabled:hover {
+            transform: none;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+
+        .buttons {
+            display: flex;
+            gap: 1.2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 3px solid;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            font-family: 'Quicksand', sans-serif;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .btn-blue {
+            background: linear-gradient(145deg, #3b82f6, #2563eb);
+            color: white;
+            border-color: #1d4ed8;
+        }
+
+        .btn-red {
+            background: linear-gradient(145deg, #ef4444, #dc2626);
+            color: white;
+            border-color: #b91c1c;
+        }
+
+        /* Section 3: Typing Game */
+        .answer-boxes {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .answer-box {
+            width: 80px;
+            height: 80px;
+            border: 3px solid #3b5998;
+            background: linear-gradient(145deg, #2d4a7c, #1e3a5f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .answer-box.has-letter {
+            border-color: #f59e0b;
+            background: linear-gradient(145deg, #fbbf24, #f59e0b);
+            color: #1e293b;
+            transform: scale(1.08);
+            box-shadow: 0 6px 18px rgba(251, 191, 36, 0.6);
+        }
+
+        .hint-text {
+            text-align: center;
+            color: #fda4af;
+            font-size: 1rem;
+            font-style: italic;
+            margin-top: 1rem;
+        }
+
+        .please-message {
+            text-align: center;
+            color: #fbbf24;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            animation: shake 0.5s ease-in-out;
+            display: none;
+        }
+
+        .please-message.show {
+            display: block;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .question-text {
+            text-align: center;
+            color: #fbcfe8;
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        /* Section 4: Loading */
+        .loading-section {
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .yes-boxes {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        .yes-box {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(145deg, #ea580c, #c2410c);
+            border: 3px solid #dc2626;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 8px 25px rgba(234, 88, 12, 0.5);
+        }
+
+        .loading-title {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 2rem;
+            color: #fce7f3;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .loading-subtitle {
+            font-size: 1.2rem;
+            color: #fbcfe8;
+            margin-bottom: 2.5rem;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(251, 191, 36, 0.3);
+            border-top-color: #fbbf24;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Section 5: Form */
+        .form-section {
+            max-width: 550px;
+            width: 100%;
+        }
+
+        .form-subtitle {
+            text-align: center;
+            color: #fbcfe8;
+            font-size: 1.2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #fce7f3;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+            border: 3px solid #fbbf24;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: 'Quicksand', sans-serif;
+            color: #1e293b;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .time-picker {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .time-picker select {
+            flex: 1;
+            padding: 15px;
+        }
+
+        .time-separator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fce7f3;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #f59e0b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(145deg, #fbbf24, #f59e0b);
+            color: #1e293b;
+            border: 3px solid #f59e0b;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: 'Quicksand', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(251, 191, 36, 0.6);
+        }
+
+        .submit-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Section 6: Final */
+        .final-section {
+            text-align: center;
+            max-width: 650px;
+        }
+
+        .hearts-top {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 2.5rem;
+            animation: bounce 1s infinite;
+        }
+
+        .heart-icon {
+            width: 70px;
+            height: 70px;
+            filter: drop-shadow(0 5px 15px rgba(236, 72, 153, 0.5));
+        }
+
+        .final-title {
+            font-size: 4rem;
+            font-family: 'Pacifico', cursive;
+            color: #fce7f3;
+            margin-bottom: 2rem;
+            animation: pulse 2s infinite;
+            text-shadow: 4px 4px 15px rgba(0,0,0,0.6);
+        }
+
+        .final-message {
+            font-size: 1.6rem;
+            color: #fbcfe8;
+            line-height: 2;
+            margin-bottom: 2.5rem;
+            font-weight: 500;
+        }
+
+        .hearts-bottom {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            animation: float 2s ease-in-out infinite;
+        }
+
+        .small-heart {
+            width: 35px;
+            height: 35px;
+            filter: drop-shadow(0 3px 8px rgba(251, 191, 36, 0.5));
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-12px);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .wordle-cell {
+                width: 50px;
+                height: 50px;
+                font-size: 1.4rem;
+            }
+
+            .answer-box {
+                width: 65px;
+                height: 65px;
+                font-size: 1.6rem;
+            }
+
+            .final-title {
+                font-size: 3rem;
+            }
+
+            .final-message {
+                font-size: 1.3rem;
+            }
+
+            .key {
+                padding: 12px 6px;
+                min-width: 32px;
+                font-size: 14px;
+            }
+
+            .key.special {
+                padding: 12px 8px;
+                min-width: 52px;
+                font-size: 11px;
+            }
+
+            .yes-box {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+
+            .loading-title {
+                font-size: 1.5rem;
+            }
+
+            .loading-subtitle {
+                font-size: 1rem;
+            }
+
+            .form-section {
+                padding: 0 10px;
+            }
+
+            .form-subtitle {
+                font-size: 1rem;
+            }
+
+            .form-group label {
+                font-size: 1rem;
+            }
+
+            .form-group input,
+            .form-group textarea {
+                padding: 12px 15px;
+                font-size: 0.95rem;
+            }
+
+            .time-picker select {
+                padding: 12px 10px;
+                font-size: 0.9rem;
+            }
+
+            .time-separator {
+                font-size: 1.2rem;
+            }
+
+            .submit-btn {
+                font-size: 1.1rem;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Section 1: Wordle Game -->
+        <div id="section1" class="section active">
+            <h1>Wordle</h1>
+            
+            <div class="instructions">
+                <p><strong>How to Play:</strong></p>
+                <p>Guess the 5-letter word in 6 tries.</p>
+                <p>🟨 = Right letter, right spot</p>
+                <p>🟡 = Right letter, wrong spot</p>
+                <p>⬛ = Letter not in word</p>
+            </div>
+            
+            <div class="wordle-container">
+                <div class="wordle-grid" id="wordleGrid"></div>
+            </div>
+            
+            <div class="keyboard">
+                <div class="keyboard-row">
+                    <button class="key" data-key="Q">Q</button>
+                    <button class="key" data-key="W">W</button>
+                    <button class="key" data-key="E">E</button>
+                    <button class="key" data-key="R">R</button>
+                    <button class="key" data-key="T">T</button>
+                    <button class="key" data-key="Y">Y</button>
+                    <button class="key" data-key="U">U</button>
+                    <button class="key" data-key="I">I</button>
+                    <button class="key" data-key="O">O</button>
+                    <button class="key" data-key="P">P</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key" data-key="A">A</button>
+                    <button class="key" data-key="S">S</button>
+                    <button class="key" data-key="D">D</button>
+                    <button class="key" data-key="F">F</button>
+                    <button class="key" data-key="G">G</button>
+                    <button class="key" data-key="H">H</button>
+                    <button class="key" data-key="J">J</button>
+                    <button class="key" data-key="K">K</button>
+                    <button class="key" data-key="L">L</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key special" id="wordleEnter">ENTER</button>
+                    <button class="key" data-key="Z">Z</button>
+                    <button class="key" data-key="X">X</button>
+                    <button class="key" data-key="C">C</button>
+                    <button class="key" data-key="V">V</button>
+                    <button class="key" data-key="B">B</button>
+                    <button class="key" data-key="N">N</button>
+                    <button class="key" data-key="M">M</button>
+                    <button class="key special" id="wordleBackspace">⌫</button>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-blue" id="playAgain">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                    </svg>
+                    Play Again
+                </button>
+                <button class="btn btn-red" id="giveUp">Give Up</button>
+            </div>
+        </div>
+
+        <!-- Section 3: Typing Game -->
+        <div id="section3" class="section">
+            <h1>Will you be my Valentine?</h1>
+            <p class="question-text">Type your answer...</p>
+            
+            <div class="answer-boxes" id="answerBoxes">
+                <div class="answer-box"></div>
+                <div class="answer-box"></div>
+                <div class="answer-box"></div>
+            </div>
+
+            <div class="keyboard">
+                <div class="keyboard-row">
+                    <button class="key" data-key="Q">Q</button>
+                    <button class="key" data-key="W">W</button>
+                    <button class="key yellow" data-key="E">E</button>
+                    <button class="key" data-key="R">R</button>
+                    <button class="key" data-key="T">T</button>
+                    <button class="key yellow" data-key="Y">Y</button>
+                    <button class="key" data-key="U">U</button>
+                    <button class="key" data-key="I">I</button>
+                    <button class="key grey" data-key="O">O</button>
+                    <button class="key" data-key="P">P</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key" data-key="A">A</button>
+                    <button class="key yellow" data-key="S">S</button>
+                    <button class="key" data-key="D">D</button>
+                    <button class="key" data-key="F">F</button>
+                    <button class="key" data-key="G">G</button>
+                    <button class="key" data-key="H">H</button>
+                    <button class="key" data-key="J">J</button>
+                    <button class="key" data-key="K">K</button>
+                    <button class="key" data-key="L">L</button>
+                </div>
+                <div class="keyboard-row">
+                    <button class="key special" id="typingEnter">ENTER</button>
+                    <button class="key" data-key="Z">Z</button>
+                    <button class="key" data-key="X">X</button>
+                    <button class="key" data-key="C">C</button>
+                    <button class="key" data-key="V">V</button>
+                    <button class="key" data-key="B">B</button>
+                    <button class="key grey" data-key="N">N</button>
+                    <button class="key" data-key="M">M</button>
+                    <button class="key special" id="typingBackspace">⌫</button>
+                </div>
+            </div>
+
+            <p class="hint-text">Hint: Only one answer works... 💛</p>
+            <p class="please-message" id="pleaseMessage">PAGTARONG DEHA!</p>
+        </div>
+
+        <!-- Section 4: Loading -->
+        <div id="section4" class="section">
+            <div class="loading-section">
+                <div class="yes-boxes">
+                    <div class="yes-box">Y</div>
+                    <div class="yes-box">E</div>
+                    <div class="yes-box">S</div>
+                </div>
+                
+                <h2 class="loading-title">Preparing something special...</h2>
+                <p class="loading-subtitle">Just a moment ✨</p>
+                
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Section 5: Date Form -->
+        <div id="section5" class="section">
+            <div class="form-section">
+                <h1>Let's plan our date! 💕</h1>
+                <p class="form-subtitle">Tell me what you'd like...</p>
+                
+                <form id="dateForm" action="https://api.web3forms.com/submit" method="POST">
+                    <!-- Web3Forms Access Key -->
+                    <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+                    <input type="hidden" name="subject" value="💕 Valentine Date Response!">
+                    <input type="hidden" name="from_name" value="Your Valentine 💖">
+                    
+                    <div class="form-group">
+                        <label for="location">📍 Where should we go?</label>
+                        <input type="text" id="location" name="location" placeholder="Your dream location..." required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="time">🕐 What time works for you?</label>
+                        <div class="time-picker">
+                            <select id="hour" name="hour" required>
+                                <option value="">Hour</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                            </select>
+                            <span class="time-separator">:</span>
+                            <select id="minute" name="minute" required>
+                                <option value="">Min</option>
+                                <option value="00">00</option>
+                                <option value="15">15</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                            </select>
+                            <select id="period" name="period" required>
+                                <option value="">AM/PM</option>
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="time" name="time" value="">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="food">🍽️ What would you like to eat?</label>
+                        <input type="text" id="food" name="food" placeholder="Any cravings?" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="suggestions">💭 Anything else you want to do?</label>
+                        <textarea id="suggestions" name="suggestions" placeholder="Movies? Walk? Just tell me what makes you happy..." rows="4"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        Send My Answer
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Section 6: Final Thank You -->
+        <div id="section6" class="section">
+            <div class="final-section">
+                <div class="hearts-top">
+                    <svg class="heart-icon" viewBox="0 0 24 24" fill="#ec4899" stroke="#ec4899">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="heart-icon" viewBox="0 0 24 24" fill="#f43f5e" stroke="#f43f5e">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="heart-icon" viewBox="0 0 24 24" fill="#ec4899" stroke="#ec4899">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                </div>
+
+                <h1 class="final-title">Thank you! 💕</h1>
+
+                <p class="final-message">
+    I got your message! ✨<br>
+    It was my pleasure having you as my<br>
+    Valentine date.
+</p>
+
+                <div class="hearts-bottom">
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    <svg class="small-heart" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const TARGET_WORD = 'CRAVE';
+        const MAX_ATTEMPTS = 6;
+        let currentSection = 1;
+        let wordleGuess = '';
+        let wordleAttempts = [];
+        let typedAnswer = '';
+        let sparkleInterval = null;
+
+        // Valentine Message for reveal
+        const valentineMessage = [
+            ['W', 'I', 'L', 'L'],
+            ['Y', 'O', 'U'],
+            ['B', 'E'],
+            ['M', 'Y'],
+            ['V', 'A', 'L', 'E', 'N', 'T', 'I', 'N', 'E', '?']
+        ];
+
+        // Initialize Wordle Grid
+        function initWordleGrid() {
+            const grid = document.getElementById('wordleGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < MAX_ATTEMPTS; i++) {
+                const row = document.createElement('div');
+                row.className = 'wordle-row';
+                for (let j = 0; j < 5; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'wordle-cell';
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    row.appendChild(cell);
+                }
+                grid.appendChild(row);
+            }
+        }
+
+        // Update Wordle Display
+        function updateWordleDisplay() {
+            const currentRow = wordleAttempts.length;
+            
+            // Update current guess
+            for (let i = 0; i < 5; i++) {
+                const cell = document.querySelector(`[data-row="${currentRow}"][data-col="${i}"]`);
+                if (cell) {
+                    cell.textContent = wordleGuess[i] || '';
+                    if (wordleGuess[i]) {
+                        cell.classList.add('has-letter');
+                    } else {
+                        cell.classList.remove('has-letter');
+                    }
+                }
+            }
+
+            // Update previous attempts
+            wordleAttempts.forEach((attempt, rowIndex) => {
+                for (let i = 0; i < 5; i++) {
+                    const cell = document.querySelector(`[data-row="${rowIndex}"][data-col="${i}"]`);
+                    const letter = attempt[i];
+                    cell.textContent = letter;
+                    
+                    if (TARGET_WORD[i] === letter) {
+                        cell.classList.add('correct');
+                    } else if (TARGET_WORD.includes(letter)) {
+                        cell.classList.add('present');
+                    } else {
+                        cell.classList.add('absent');
+                    }
+                }
+            });
+        }
+
+        // Reveal Valentine Message
+        function revealValentineMessage() {
+            // Change background to romantic red
+            document.body.classList.add('romantic-bg');
+            
+            const grid = document.getElementById('wordleGrid');
+            grid.innerHTML = '';
+            
+            valentineMessage.forEach((word, wordIndex) => {
+                const row = document.createElement('div');
+                row.className = 'wordle-row';
+                
+                word.forEach((letter, letterIndex) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'wordle-cell revealed';
+                    cell.textContent = letter;
+                    cell.style.animationDelay = `${(wordIndex * 5 + letterIndex) * 0.05}s`;
+                    row.appendChild(cell);
+                });
+                
+                grid.appendChild(row);
+            });
+
+            // Transition to next section after animation
+            setTimeout(() => {
+                showSection(3);
+            }, 3000);
+        }
+
+        // Create sparkle rain effect
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.textContent = '✨';
+            sparkle.style.left = Math.random() * 100 + '%';
+            sparkle.style.animationDuration = (Math.random() * 2 + 3) + 's';
+            document.body.appendChild(sparkle);
+
+            setTimeout(() => {
+                sparkle.remove();
+            }, 5000);
+        }
+
+        function startSparkleRain() {
+            sparkleInterval = setInterval(createSparkle, 150);
+        }
+
+        function stopSparkleRain() {
+            if (sparkleInterval) {
+                clearInterval(sparkleInterval);
+                sparkleInterval = null;
+            }
+        }
+
+        // Wordle Keyboard Handlers
+        document.querySelectorAll('#section1 .key[data-key]').forEach(key => {
+            key.addEventListener('click', () => {
+                const letter = key.dataset.key;
+                if (wordleGuess.length < 5) {
+                    wordleGuess += letter;
+                    updateWordleDisplay();
+                }
+            });
+        });
+
+        document.getElementById('wordleBackspace').addEventListener('click', () => {
+            wordleGuess = wordleGuess.slice(0, -1);
+            updateWordleDisplay();
+        });
+
+        document.getElementById('wordleEnter').addEventListener('click', () => {
+            if (wordleGuess.length === 5) {
+                wordleAttempts.push(wordleGuess);
+                updateWordleDisplay();
+                wordleGuess = '';
+            }
+        });
+
+        document.getElementById('playAgain').addEventListener('click', () => {
+            wordleGuess = '';
+            wordleAttempts = [];
+            initWordleGrid();
+            updateWordleDisplay();
+        });
+
+        document.getElementById('giveUp').addEventListener('click', () => {
+            revealValentineMessage();
+        });
+
+        // Typing Game Handlers
+        function updateAnswerBoxes() {
+            const boxes = document.querySelectorAll('#answerBoxes .answer-box');
+            boxes.forEach((box, index) => {
+                const letter = typedAnswer[index];
+                box.textContent = letter || '';
+                
+                // Remove classes
+                box.classList.remove('has-letter');
+                
+                // Add has-letter for any letter (no special styling)
+                if (letter) {
+                    box.classList.add('has-letter');
+                }
+            });
+        }
+
+        document.querySelectorAll('#section3 .key[data-key]').forEach(key => {
+            key.addEventListener('click', () => {
+                const letter = key.dataset.key;
+                if (typedAnswer.length < 3 && !key.classList.contains('disabled')) {
+                    typedAnswer += letter;
+                    updateAnswerBoxes();
+                }
+            });
+        });
+
+        document.getElementById('typingBackspace').addEventListener('click', () => {
+            typedAnswer = typedAnswer.slice(0, -1);
+            updateAnswerBoxes();
+        });
+
+        document.getElementById('typingEnter').addEventListener('click', () => {
+            if (typedAnswer === 'YES') {
+                // Start sparkles and show loading screen
+                startSparkleRain();
+                showSection(4);
+                
+                // After 3 seconds, show the form
+                setTimeout(() => {
+                    showSection(5);
+                }, 3000);
+            } else if (typedAnswer.length >= 2) {
+                // If answer contains N or O, show PLEASE NA message
+                if (typedAnswer.includes('N') || typedAnswer.includes('O')) {
+                    // Show PLEASE NA message
+                    const pleaseMsg = document.getElementById('pleaseMessage');
+                    pleaseMsg.classList.add('show');
+                    
+                    // Disable N and O keys
+                    document.querySelectorAll('#section3 .key[data-key]').forEach(key => {
+                        if (key.dataset.key === 'N' || key.dataset.key === 'O') {
+                            key.classList.add('disabled');
+                        }
+                    });
+                    
+                    // Clear the answer after a short delay
+                    setTimeout(() => {
+                        typedAnswer = '';
+                        updateAnswerBoxes();
+                    }, 500);
+                }
+            }
+        });
+
+        // Section Management
+        function showSection(sectionNum) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`section${sectionNum}`).classList.add('active');
+            currentSection = sectionNum;
+
+            // Manage background effects
+            if (sectionNum === 1) {
+                // Back to Wordle - remove romantic background and effects
+                document.body.classList.remove('romantic-bg');
+                stopSparkleRain();
+            } else if (sectionNum === 4 || sectionNum === 6) {
+                // Loading and final thank you - keep sparkles
+                if (!sparkleInterval) {
+                    startSparkleRain();
+                }
+            } else if (sectionNum === 5) {
+                // Form section - stop sparkles
+                stopSparkleRain();
+            }
+        }
+
+        // Initialize
+        initWordleGrid();
+        updateWordleDisplay();
+        
+        // Form submission handler
+        document.getElementById('dateForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Combine time fields
+            const hour = document.getElementById('hour').value;
+            const minute = document.getElementById('minute').value;
+            const period = document.getElementById('period').value;
+            
+            if (hour && minute && period) {
+                document.getElementById('time').value = `${hour}:${minute} ${period}`;
+            }
+            
+            // Submit the form data
+            const formData = new FormData(this);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Show thank you page
+                    showSection(6);
+                } else {
+                    // If error, still show thank you page (fail gracefully)
+                    console.error('Form submission error');
+                    showSection(6);
+                }
+            }).catch(error => {
+                // If network error, still show thank you page (fail gracefully)
+                console.error('Network error:', error);
+                showSection(6);
+            });
+        });
+    </script>
+</body>
+</html>
